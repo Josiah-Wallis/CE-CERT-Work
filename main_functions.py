@@ -4,6 +4,7 @@ from typing import Callable, Iterable
 from scipy.stats import pearsonr, linregress
 from sklearn.metrics import r2_score
 
+
 # Define color highlight criteria for correlation spreadsheet cells
 def null_hl(x):
     color = (-0.6 < x) & (x < 0.6)
