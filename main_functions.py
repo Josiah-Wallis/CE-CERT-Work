@@ -110,7 +110,6 @@ def populate(data, func, format_func, idx, args, comm):
 
         matrix = pd.concat(matrix, axis = 1)
 
-
     return matrix
 
 def R2(X, Y):
@@ -118,82 +117,6 @@ def R2(X, Y):
     pred = X * slope + intercept
     coeff_of_det = r2_score(Y, pred)
     return coeff_of_det
-
-def functional_corr(data: pd.DataFrame, column_split: Iterable, func: Callable, format_func: Callable, args: int, comm: int = 1) -> dict:
-    '''
-    Given data with associated features, transform the data using func and format the new labels usng format_func.
-    args provides the number of arguments for func (1 for inplace operations and 2 for double operand operations).
-    comm states whether an operation is commutative (1 for yes, 0 for no). maybe switch to bool later.
-    '''
-    
-    pvalue = lambda x,y: 1 if (pearsonr(x, y)[1] < 0.05) else 0
-    
-    inp_idx, inter_idx = column_split
-
-    # Compute input transformations
-    input_w_inter = populate(data, func, format_func, (0, inp_idx), args, comm)
-    clean(input_w_inter)
-    saved_1 = input_w_inter.copy()
-
-    # Input-with-Intermediate Correlations
-    columns = data.columns[inp_idx:inter_idx]
-    input_w_inter[columns] = data[columns].copy()
-    input_w_inter_f = input_w_inter.corr()
-    sig_1 = input_w_inter.corr(method = pvalue)
-    cod_1 = input_w_inter_f ** 2
-
-    input_w_inter_f = input_w_inter_f[columns].iloc[:-len(columns)].copy()
-    sig_1 = sig_1[columns].iloc[:-len(columns)].copy()
-    cod_1 = cod_1[columns].iloc[:-len(columns)].copy()
-
-    # Compute intermediate transformations
-    inter_w_final = populate(data, func, format_func, (inp_idx, inter_idx), args, comm)
-    clean(inter_w_final)
-    saved_2 = inter_w_final.copy()
-
-    # Intermediate-with-Final Correlations
-    columns = data.columns[inter_idx:]
-    inter_w_final[columns] = data[columns].copy()
-    inter_w_final_f = inter_w_final.corr()
-    sig_2 = inter_w_final.corr(method = pvalue)
-    cod_2 = inter_w_final_f ** 2
-
-    inter_w_final_f = inter_w_final_f[columns].iloc[:-len(columns)].copy()
-    sig_2 = sig_2[columns].iloc[:-len(columns)].copy()
-    cod_2 = cod_2[columns].iloc[:-len(columns)].copy()
-
-    # Compute all transformations
-    final = populate(data, func, format_func, (0, inter_idx), args, comm)
-    clean(final)
-    saved_3 = final.copy()
-
-    # (Input + Intermediate)-with-Final Correlations
-    final[columns] = data[columns].copy()
-    final_f = final.corr()
-    sig_3 = final.corr(method = pvalue)
-    cod_3 = final_f ** 2
-
-    final_f = final_f[columns].iloc[:-len(columns)].copy()
-    sig_3 = sig_3[columns].iloc[:-len(columns)].copy()
-    cod_3 = cod_3[columns].iloc[:-len(columns)].copy()
-    
-    # Store computations
-    corrs = [input_w_inter_f, inter_w_final_f, final_f]
-    pvals = [sig_1, sig_2, sig_3]
-    cods = [cod_1, cod_2, cod_3]
-    intermediate_steps = [saved_1, saved_2, saved_3]
-    
-    # Round some computations to 3 sigfigs
-    for i in range(3):
-        corrs[i] = np.round(corrs[i], 3)
-        cods[i] = np.round(cods[i], 3)
-
-    # Drops rows with NaN (divide by zero errors and similar issues)
-    for i, df in enumerate(corrs):
-        if df.isnull().values.any():
-            corrs[i] = df.dropna(axis = 0)
-
-    return {'correlations' : corrs, 'computations' : intermediate_steps, 'significance': pvals, 'coeff of determination': cods}
 
 def t_corr_helper(corr_columns, data, func, format_func, idxs, args, comm):
 
