@@ -226,12 +226,12 @@ def t_corr_helper(corr_columns, data, func, format_func, idxs, args, comm):
 def t_corr(data: pd.DataFrame, column_split: Iterable, func: Callable, format_func: Callable, args: int, comm: int = 1) -> dict:
     inp_idx, inter_idx = column_split
 
+    if not inter_idx: inter_idx = inp_idx
+
     corr_columns = data.columns[inp_idx:inter_idx]
     input_w_inter = t_corr_helper(corr_columns, data, func, format_func, (0, inp_idx), args, comm)
 
     corr_columns = data.columns[inter_idx:]
-    inter_w_final = t_corr_helper(corr_columns, data, func, format_func, (inp_idx, inter_idx), args, comm)
-
     final = t_corr_helper(corr_columns, data, func, format_func, (0, inter_idx), args, comm)
 
-    return input_w_inter, inter_w_final, final
+    return input_w_inter, final
