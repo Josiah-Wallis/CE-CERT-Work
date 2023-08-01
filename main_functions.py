@@ -88,7 +88,7 @@ def populate(data, func, format_func, idx, args, comm):
         matrix.columns = new_cols
 
     elif args == 2:
-        matrix = pd.DataFrame()
+        matrix = []
 
         for i in range(idx[0], idx[1]):
             col1_name = data.columns[i]
@@ -101,21 +101,14 @@ def populate(data, func, format_func, idx, args, comm):
 
                 key = format_func(col1_name, col2_name)
                 compute = pd.Series(func(col1, col2), name = key)
+                matrix.append(compute)
 
                 if cond:
                     comm_key = format_func(col2_name, col1_name)
                     comm_comp = pd.Series(func(col2, col1), name = comm_key)
+                    matrix.append(comm_comp)
 
-                if matrix.empty:
-                    matrix = pd.DataFrame(compute)
-
-                    if cond:
-                        matrix = matrix.join(comm_comp).copy()
-                    continue
-
-                matrix = matrix.join(compute).copy()
-                if cond:
-                    matrix = matrix.join(comm_comp).copy()
+        matrix = pd.concat(matrix, axis = 1)
 
 
     return matrix
