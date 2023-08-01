@@ -201,3 +201,37 @@ def functional_corr(data: pd.DataFrame, column_split: Iterable, func: Callable, 
             corrs[i] = df.dropna(axis = 0)
 
     return {'correlations' : corrs, 'computations' : intermediate_steps, 'significance': pvals, 'coeff of determination': cods}
+
+def t_corr_helper(corr_columns, data, func, format_func, idxs, args, comm):
+
+    pvalue = lambda x,y: 1 if (pearsonr(x, y)[1] < 0.05) else 0
+
+    t_data = populate(data, func, format_func, idxs, args, comm)
+    clean(t_data)
+    
+    t_data[corr_columns] = data[corr_columns].copy()
+    t_w_ut_corr = np.round(t_data.corr(), 3)
+    pvals = t_data.corr(method = pvalue)
+    cods = np.round(t_w_ut_corr ** 2, 3)
+
+    t_w_ut_corr = t_w_ut_corr[corr_columns].iloc[:-len(corr_columns)].copy()
+    pvals = pvals[corr_columns].iloc[:-len(corr_columns)].copy()
+    cods = cods[corr_columns].iloc[:-len(corr_columns)].copy()
+
+    if t_w_ut_corr.isnull().values.any():
+        t_w_ut_corr.dropna(axis = 0, inplace = True)
+
+    return [t_w_ut_corr, pvals, cods]
+
+def t_corr(data: pd.DataFrame, column_split: Iterable, func: Callable, format_func: Callable, args: int, comm: int = 1) -> dict:
+    inp_idx, inter_idx = column_split
+
+    corr_columns = data.columns[inp_idx:inter_idx]
+    input_w_inter = t_corr_helper(corr_columns, data, func, format_func, (0, inp_idx), args, comm)
+
+    corr_columns = data.columns[inter_idx:]
+    inter_w_final = t_corr_helper(corr_columns, data, func, format_func, (inp_idx, inter_idx), args, comm)
+
+    final = t_corr_helper(corr_columns, data, func, format_func, (0, inter_idx), args, comm)
+
+    return input_w_inter, inter_w_final, final
